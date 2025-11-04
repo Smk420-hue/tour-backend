@@ -48,9 +48,18 @@ const Booking = sequelize.define("Booking", {
   specialRequirements: {
     type: DataTypes.TEXT,
   },
-  emergencyContact: {
-    type: DataTypes.JSON,
+ emergencyContact: {
+  type: DataTypes.TEXT,
+  allowNull: true,
+  get() {
+    const rawValue = this.getDataValue("emergencyContact");
+    return rawValue ? JSON.parse(rawValue) : null;
   },
+  set(value) {
+    this.setDataValue("emergencyContact", JSON.stringify(value));
+  },
+},
+
   userId: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -66,3 +75,4 @@ Booking.beforeCreate((booking) => {
 });
 
 export default Booking;
+
