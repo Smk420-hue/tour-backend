@@ -1,0 +1,30 @@
+// backend/middleware/rateLimiter.js
+import rateLimit from "express-rate-limit";
+
+const isDev = process.env.NODE_ENV !== "production";
+
+// ✅ Disable all rate limits in development
+export const authLimiter = isDev
+  ? (req, res, next) => next()
+  : rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 5,
+      message: "Too many login attempts, please try again after 15 minutes",
+      skipSuccessfulRequests: true,
+    });
+
+export const apiLimiter = isDev
+  ? (req, res, next) => next()
+  : rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 100,
+      message: "Too many requests, please try again later",
+    });
+
+export const tourCreationLimiter = isDev
+  ? (req, res, next) => next()
+  : rateLimit({
+      windowMs: 60 * 60 * 1000, // 1 hour
+      max: 10,
+      message: "Too many tour creations, please try again later",
+    });
