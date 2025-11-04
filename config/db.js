@@ -15,14 +15,10 @@ const db = new Sequelize(
     dialect: 'mysql',
     logging: isProduction ? false : console.log,
     timezone: '+05:30', // India Standard Time
-    dialectOptions: isProduction
-      ? {
-          ssl: {
-            require: true,
-            rejectUnauthorized: false,
-          },
-        }
-      : {},
+    dialectOptions: {
+      ssl: process.env.DB_SSL === "true" ? { require: true, rejectUnauthorized: false } : false,
+    },
+    logging: false,
     pool: {
       max: 10,
       min: 0,
@@ -43,3 +39,4 @@ const db = new Sequelize(
 })();
 
 export default db;
+
