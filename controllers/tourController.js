@@ -1151,3 +1151,74 @@ export const getToursByDiscount = asyncHandler(async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch discounted tours" });
   }
 });
+
+
+// toursController.js
+
+// ✅ Get only domestic tours
+export const getDomesticTours = asyncHandler(async (req, res) => {
+  try {
+    const { state, isPopular, search, page = 1, limit = 9 } = req.query;
+    
+    const where = { category: 'domestic' };
+    if (state) where.state = state;
+    if (isPopular) where.isPopular = true;
+    if (search) where.title = { [Op.like]: `%${search}%` };
+
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const offset = (pageNum - 1) * limitNum;
+
+    const { rows: tours, count } = await Tour.findAndCountAll({
+      where,
+      order: [["createdAt", "DESC"]],
+      limit: limitNum,
+      offset,
+    });
+
+    res.json({
+      count,
+      totalPages: Math.ceil(count / limitNum),
+      currentPage: pageNum,
+      limit: limitNum,
+      tours,
+    });
+  } catch (error) {
+    console.error("Error fetching domestic tours:", error);
+    res.status(500).json({ message: "Failed to fetch domestic tours" });
+  }
+});
+
+// ✅ Get only international tours
+export const getInternationalTours = asyncHandler(async (req, res) => {
+  try {
+    const { country, isPopular, search, page = 1, limit = 9 } = req.query;
+    
+    const where = { category: 'international' };
+    if (country) where.country = country;
+    if (isPopular) where.isPopular = true;
+    if (search) where.title = { [Op.like]: `%${search}%` };
+
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const offset = (pageNum - 1) * limitNum;
+
+    const { rows: tours, count } = await Tour.findAndCountAll({
+      where,
+      order: [["createdAt", "DESC"]],
+      limit: limitNum,
+      offset,
+    });
+
+    res.json({
+      count,
+      totalPages: Math.ceil(count / limitNum),
+      currentPage: pageNum,
+      limit: limitNum,
+      tours,
+    });
+  } catch (error) {
+    console.error("Error fetching international tours:", error);
+    res.status(500).json({ message: "Failed to fetch international tours" });
+  }
+});
