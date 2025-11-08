@@ -15,6 +15,8 @@ import { apiLimiter, authLimiter } from './middleware/rateLimiter.js';
 import corsOptions from './config/cors.js';
 import { requestLogger } from './middleware/logger.js';
 import uploadRoutes from './routes/upload.js';
+import CustomTourRoutes from './routes/customTourRoutes.js';
+
 
 dotenv.config();
 
@@ -44,6 +46,7 @@ app.use('/api/carousel', carouselRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/custom-tours', CustomTourRoutes);
 
 // ❤️ Health Check (includes DB status)
 app.get('/api/health', async (req, res) => {
