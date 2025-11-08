@@ -1222,3 +1222,246 @@ export const getInternationalTours = asyncHandler(async (req, res) => {
     res.status(500).json({ message: "Failed to fetch international tours" });
   }
 });
+
+// ✅ ENHANCED FILTER ROUTE - Unified filter with all options
+// ✅ FIXED: Corrected the typo from "dination" to "duration"
+export const getFilteredToursEnhanced = asyncHandler(async (req, res) => {
+  try {
+    const {
+      // Search & Basic Filters
+      search,
+      category,
+      state,
+      country,
+      
+      // Price Range
+      minPrice,
+      maxPrice,
+      
+      // Duration
+      duration,
+      
+      // Rating
+      rating,
+      
+      // Sorting
+      sortBy = 'latest',
+      
+      // Pagination
+      page = 1,
+      limit = 9
+    } = req.query;
+
+    console.log('🔍 BACKEND ENHANCED FILTER: Parameters received:', req.query);
+
+    // Build where clause
+    const where = {};
+
+    // 🔍 SEARCH FILTER (across multiple fields)
+    if (search && search.trim() !== '') {
+      where[Op.or] = [
+        { title: { [Op.like]: `%${search}%` } },
+        { destination: { [Op.like]: `%${search}%` } },
+        { shortDescription: { [Op.like]: `%${search}%` } },
+        { overview: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    // 📦 CATEGORY FILTER
+    if (category && category.trim() !== '') {
+      where.category = category;
+    }
+
+    // 🗺️ LOCATION FILTERS
+    if (state && state.trim() !== '') {
+      where.state = { [Op.like]: `%${state}%` };
+    }
+    if (country && country.trim() !== '') {
+      where.country = { [Op.like]: `%${country}%` };
+    }
+
+    // 💰 PRICE RANGE FILTER
+    if (minPrice || maxPrice) {
+      where.price = {};
+      if (minPrice) where.price[Op.gte] = parseFloat(minPrice);
+      if (maxPrice) where.price[Op.lte] = parseFloat(maxPrice);
+    }
+
+    // ⏱️ DURATION FILTER - ✅ FIXED THE TYPO!
+    if (duration && duration.trim() !== '') {
+      if (duration === '1-3') {
+        where.duration = { [Op.between]: [1, 3] };
+      } else if (duration === '4-7') {
+        where.duration = { [Op.between]: [4, 7] }; // ✅ WAS: where.dination
+      } else if (duration === '8-14') {
+        where.duration = { [Op.between]: [8, 14] };
+      } else if (duration === '15+') {
+        where.duration = { [Op.gte]: 15 };
+      }
+    }
+
+    // ⭐ RATING FILTER
+    if (rating && rating.trim() !== '') {
+      const ratingNum = parseFloat(rating);
+      where.averageRating = { [Op.gte]: ratingNum };
+    }
+
+    // 📊 SORTING OPTIONS
+    let order = [];
+    switch (sortBy) {
+      case 'price-asc':
+        order = [['price', 'ASC']];
+        break;
+      case 'price-desc':
+        order = [['price', 'DESC']];
+        break;
+      case 'rating-desc':
+        order = [['averageRating', 'DESC']];
+        break;
+      case 'popular':
+        order = [['isPopular', 'DESC'], ['averageRating', 'DESC']];
+        break;
+      case 'discount-desc':
+        order = [['discount', 'DESC']];
+        break;
+      case 'duration-asc':
+        order = [['duration', 'ASC']];
+        break;
+      case 'duration-desc':
+        order = [['duration', 'DESC']];
+        break;
+      case 'departure-asc':
+        order = [['departureDate', 'ASC']];
+        break;
+      default: // 'latest'
+        order = [['createdAt', 'DESC']];
+    }
+
+    // 🧮 PAGINATION
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const offset = (pageNum - 1) * limitNum;
+
+    console.log('📡 BACKEND ENHANCED FILTER: Executing query with:', { 
+      where, 
+      order, 
+      limit: limitNum, 
+      offset 
+    });
+
+    // 🚀 EXECUTE QUERY
+    const { count, rows: tours } = await Tour.findAndCountAll({
+  where,
+  order,
+  limit: limitNum,
+  offset,
+  distinct: true, // ✅ Prevents duplicate rows caused by JOINs
+  include: [
+    {
+      model: TourImage,
+      as: 'images',
+      attributes: ['id', 'imageUrl'],
+      required: false
+    }
+  ]
+});
+
+
+    const totalPages = Math.ceil(count / limitNum);
+
+    console.log('✅ BACKEND ENHANCED FILTER: Found', count, 'tours');
+
+    // ✅ SUCCESS RESPONSE
+    res.json({
+      success: true,
+      count,
+      totalPages,
+      currentPage: pageNum,
+      limit: limitNum,
+      tours: tours.map(tour => ({
+        ...tour.toJSON(),
+        discountedPrice: tour.discount > 0 
+          ? tour.price - (tour.price * tour.discount / 100)
+          : null,
+        availableSeats: tour.seats - tour.bookedSeats,
+        isAvailable: (tour.seats - tour.bookedSeats) > 0
+      }))
+    });
+
+  } catch (error) {
+    console.error('❌ BACKEND ENHANCED FILTER: Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch filtered tours',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// ✅ QUICK FILTER ROUTE - For common filter combinations
+export const getQuickFilteredTours = asyncHandler(async (req, res) => {
+  try {
+    const {
+      category,
+      state,
+      country,
+      minPrice,
+      maxPrice,
+      duration,
+      page = 1,
+      limit = 12
+    } = req.query;
+
+    const where = {};
+    
+    if (category) where.category = category;
+    if (state) where.state = { [Op.iLike]: `%${state}%` };
+    if (country) where.country = { [Op.iLike]: `%${country}%` };
+    
+    // Price range
+    if (minPrice || maxPrice) {
+      where.price = {};
+      if (minPrice) where.price[Op.gte] = parseFloat(minPrice);
+      if (maxPrice) where.price[Op.lte] = parseFloat(maxPrice);
+    }
+
+    // Duration
+    if (duration) {
+      where.duration = { [Op.lte]: parseInt(duration) };
+    }
+
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const offset = (pageNum - 1) * limitNum;
+
+    const { count, rows: tours } = await Tour.findAndCountAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      limit: limitNum,
+      offset,
+      include: [
+        {
+          model: TourImage,
+          as: 'images',
+          attributes: ['id', 'imageUrl'],
+          required: false
+        }
+      ]
+    });
+
+    res.json({
+      success: true,
+      count,
+      totalPages: Math.ceil(count / limitNum),
+      currentPage: pageNum,
+      tours
+    });
+
+  } catch (error) {
+    console.error('Error in quick filter:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tours'
+    });
+  }
+});
