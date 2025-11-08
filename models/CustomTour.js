@@ -1,8 +1,8 @@
 // models/CustomTour.js
 import { DataTypes } from "sequelize";
-import sequelize from "../config/database.js";
+import db from "../config/db.js";
 
-const CustomTour = sequelize.define("CustomTour", {
+const CustomTour = db.define("CustomTour", {
   tourType: {
     type: DataTypes.ENUM("Domestic", "International"),
     allowNull: false,
