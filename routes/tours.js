@@ -16,7 +16,10 @@ import {
   getAvailableDestinations,
   getToursByDiscount,
   getDomesticTours,
-  getInternationalTours 
+  getInternationalTours,
+  getFilteredToursEnhanced,
+  getQuickFilteredTours,
+  
 } from '../controllers/tourController.js';
 import { protect, admin, employee } from '../middleware/authMiddleware.js';
 import { upload } from '../middleware/uploadMiddleware.js';
@@ -36,6 +39,9 @@ router.get('/search', searchTours);
 router.get("/discounted", getToursByDiscount);
 router.get("/domestic", getDomesticTours);
 router.get("/international", getInternationalTours);
+
+router.get('/filter/enhanced', getFilteredToursEnhanced);
+router.get('/filter/quick', getQuickFilteredTours);
 router.get('/:id', getTour);
 router.get('/slug/:slug', getTourBySlug);
 router.get('/:id/pdf', generateTourPDF);
